@@ -88,58 +88,91 @@ public class RubroNegra {
     }
   }
 
-  public No buscar(int valor) {
-    if (root == null) return null;
-    No atual = root;  
-    while (atual.elem != valor) {
-      if(valor < atual.elem ) atual = atual.esq; 
-      else atual = atual.dir; 
-      if (atual == null) return null; 
-    } 
-    return atual; 
-  }
+  public boolean remover(long v) {
+    if (root == null)
+      return false;
 
-  public boolean remover(int valor) {
-    if (root == null) return false;
     No atual = root;
     No pai = root;
     boolean filho_esq = true;
-    tamanho--;
-  
-    while (atual.elem != valor) {
-      pai = atual;
-      if(valor < atual.elem ) { 
+
+    while (atual.elem != v) { 
+      pai = atual; 
+      if (v < atual.elem) {
         atual = atual.esq;
         filho_esq = true;
+      } else {
+        atual = atual.dir;
+        filho_esq = false;
       }
-      else { 
-        atual = atual.dir; 
-        filho_esq = false; 
+      if (atual == null)
+        return false; 
+    }
+
+    this.verificarRemocao(atual);
+
+    if (atual.esq == null && atual.dir == null) { 
+      if (atual == root) { 
+        root = null;
+      } else if (filho_esq) {
+        pai.esq = null;
+      } else {
+        pai.dir = null;
+        atual = null;
       }
-      if (atual == null) return false;
     }
-    
-    if (atual.esq == null && atual.dir == null) {
-      if (atual == root ) root = null;
-      else if (filho_esq) pai.esq = null;
-           else pai.dir = null; 
+
+    else if (atual.dir == null) { 
+      if (atual == root) {
+        root = atual.esq;
+      } else if (filho_esq) {
+        pai.esq = atual.esq;
+        if (atual.esq != null) {
+          atual.esq.pai = pai;
+        }
+        atual = null;
+      } else {
+        pai.dir = atual.esq;
+        atual.esq.pai = pai;
+        atual = null;
+      }
     }
-    else if (atual.dir == null) {
-       if (atual == root) root = atual.esq;
-       else if (filho_esq) pai.esq = atual.esq;
-            else pai.dir = atual.esq; 
+
+    else if (atual.esq == null) { 
+      if (atual == root)
+        root = atual.dir;
+      else if (filho_esq) {
+        pai.esq = atual.dir;
+      } else {
+        atual.dir.pai = pai;
+        atual.pai.dir = atual.dir;
+        atual = null;
+      }
     }
-    else if (atual.esq == null) {
-       if (atual == root) root = atual.dir; 
-       else if (filho_esq) pai.esq = atual.dir;
-            else pai.dir = atual.dir;
-    } else {
-      No sucessor = no_sucessor(atual);
-      if (atual == root) root = sucessor;
-      else if(filho_esq) pai.esq = sucessor; 
-           else pai.dir = sucessor; 
+
+    else { 
+      No sucessor = this.no_sucessor(atual);
+      if (atual == root) {
+        sucessor.esq = root.esq;
+        sucessor.dir = root.dir;
+        root.esq.pai = sucessor;
+        root.dir.pai = sucessor;
+        root = sucessor;
+      } else if (filho_esq) {
+        atual.esq.pai = sucessor;
+        atual.dir.pai = sucessor;
+        pai.esq = sucessor;
+        sucessor.esq = atual.dir;
+        sucessor.pai = pai;
+      } else {
+        sucessor.pai = pai;
+        pai.dir = sucessor;
+      }
       sucessor.esq = atual.esq;
+      atual = null;
     }
+
+    tamanho--;
     return true;
   }
 
@@ -159,6 +192,77 @@ public class RubroNegra {
      }
      return sucessor;
   }
+
+  public void verificarRemocao(No atual) {
+    No sucessor = this.no_sucessor(atual);
+    boolean sitaucao2 = atual.cor == 0 && sucessor != null && sucessor.cor == 1;
+    boolean situacao3 = atual.cor == 0 && (sucessor == null || sucessor.cor == 0);
+    // Situação 2
+    if (sitaucao2) {
+      sucessor.cor = 0;
+    }
+    // Situação 3
+    else if (situacao3) {
+      No irmao = atual.pai.elem > atual.elem ? atual.pai.dir : atual.pai.esq;
+      No sobrinhoEsq = irmao != null ? irmao.esq : null;
+      No sobrinhoDir = irmao != null ? irmao.dir : null;
+      boolean irmaoDir = atual.pai.elem > atual.elem ? true : false;
+      // CASOS
+      boolean caso1 = irmao != null && irmao.cor == 1 && atual.pai.cor == 0;
+
+      boolean caso2a = (irmao == null || irmao.cor == 0) && (atual.pai == null || atual.pai.cor == 0)
+          && ((sobrinhoEsq == null || sobrinhoEsq.cor == 0) && (sobrinhoDir == null || sobrinhoDir.cor == 0));
+
+      boolean caso2b = (irmao == null || irmao.cor == 0) && (sobrinhoEsq == null || sobrinhoEsq.cor == 0)
+          && (sobrinhoDir == null || sobrinhoDir.cor == 0) && (atual.pai != null && atual.pai.cor == 1);
+
+      boolean caso3 = (irmao == null || irmao.cor == 0) && (sobrinhoDir == null || sobrinhoDir.cor == 0)
+          && (sobrinhoEsq != null && sobrinhoEsq.cor == 1);
+
+      boolean caso4 = (irmao == null || irmao.cor == 0) && (sobrinhoDir != null && sobrinhoDir.cor == 1);
+
+      if (caso1) {
+        irmao.cor = 0;
+        if (irmaoDir)
+          this.RE(atual.pai, false);
+        else
+          this.RD(atual.pai, true);
+        atual.pai.cor = 1;
+        caso2b = true;
+      }
+      if (caso2a) {
+        if (irmao != null)
+          irmao.cor = 1;
+        if (atual.pai == this.root) {
+          return;
+        } else {
+          this.verificarRemocao(atual.pai);
+        }
+      }
+      if (caso2b) {
+        irmao.cor = 1;
+        atual.pai.cor = 0;
+      }
+      if (caso3) {
+        this.RD(irmao, false);
+        irmao.cor = 1;
+        sobrinhoEsq.cor = 0;
+        caso4 = true;
+      }
+      if (caso4) {
+        irmao.cor = atual.pai.cor;
+        atual.pai.cor = 0;
+        sobrinhoDir.cor = 0;
+        this.RE(atual.pai, false);
+      }
+
+    } else if (atual.cor == 1 && sucessor.cor == 0) {
+      sucessor.cor = 1;
+      situacao3 = true;
+      this.verificarRemocao(sucessor.dir);
+    }
+  }
+
 
   public void RE(No no, boolean rotdupla) {
     No FDir = no.dir;

@@ -3,6 +3,7 @@ public class No {
   public No dir;
   public No esq;
   public No pai;
+  public int bal;
   public int cor;
 
   public No(long elem) {

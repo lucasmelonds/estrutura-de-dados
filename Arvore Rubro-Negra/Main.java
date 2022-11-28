@@ -9,5 +9,10 @@ class Main {
     arvore.inserir(22);
    
     arvore.desenharArvore();
+    System.out.println();
+
+    arvore.remover(5);
+    arvore.desenharArvore();
+    
   }
 }
